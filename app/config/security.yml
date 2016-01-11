@@ -25,6 +25,11 @@ security:
             stateless: true
             anonymous: true
 
+        webhook:
+            pattern: /webhook/.*
+            stateless: true
+            anonymous: true
+
         login_firewall:
             pattern:    ^/login$
             anonymous:  ~
@@ -52,4 +57,5 @@ security:
         - { path: ^/register, role: IS_AUTHENTICATED_ANONYMOUSLY }
         - { path: ^/resetting, role: IS_AUTHENTICATED_ANONYMOUSLY }
         - { path: /(unread|starred|archive).xml$, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+        - { path: ^/webhook/, roles: IS_AUTHENTICATED_ANONYMOUSLY }
         - { path: ^/, roles: ROLE_USER }

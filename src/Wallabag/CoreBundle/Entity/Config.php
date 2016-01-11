@@ -11,7 +11,7 @@ use Wallabag\UserBundle\Entity\User;
  * Config.
  *
  * @ORM\Entity(repositoryClass="Wallabag\CoreBundle\Repository\ConfigRepository")
- * @ORM\Table(name="`config`")
+ * @ORM\Table(name="`config`", uniqueConstraints={@ORM\UniqueConstraint(columns={"webhook_token"})})
  * @ORM\Entity
  */
 class Config
@@ -74,6 +74,13 @@ class Config
     private $rssLimit;
 
     /**
+     * @var string
+     *
+     * @ORM\Column(name="webhook_token", type="string", nullable=true)
+     */
+    private $webhookToken;
+
+    /**
      * @ORM\OneToOne(targetEntity="Wallabag\UserBundle\Entity\User", inversedBy="config")
      */
     private $user;
@@ -83,6 +90,13 @@ class Config
      * @ORM\OrderBy({"id" = "ASC"})
      */
     private $taggingRules;
+
+    /**
+     * @var Webhook[]
+     *
+     * @ORM\OneToMany(targetEntity="Wallabag\CoreBundle\Entity\Webhook", mappedBy="config", cascade={"persist", "remove", "merge"})
+     */
+    private $webhooks;
 
     /*
      * @param User     $user
@@ -248,6 +262,22 @@ class Config
     }
 
     /**
+     * @return string
+     */
+    public function getWebhookToken()
+    {
+        return $this->webhookToken;
+    }
+
+    /**
+     * @param string $webhookToken
+     */
+    public function setWebhookToken($webhookToken)
+    {
+        $this->webhookToken = $webhookToken;
+    }
+
+    /**
      * @param TaggingRule $rule
      *
      * @return Config
@@ -265,5 +295,21 @@ class Config
     public function getTaggingRules()
     {
         return $this->taggingRules;
+    }
+
+    /**
+     * @return Webhook[]
+     */
+    public function getWebhooks()
+    {
+        return $this->webhooks;
+    }
+
+    /**
+     * @param Webhook[] $webhooks
+     */
+    public function setWebhooks($webhooks)
+    {
+        $this->webhooks = $webhooks;
     }
 }

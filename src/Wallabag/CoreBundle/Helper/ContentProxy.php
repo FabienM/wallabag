@@ -4,7 +4,9 @@ namespace Wallabag\CoreBundle\Helper;
 
 use Graby\Graby;
 use Psr\Log\LoggerInterface as Logger;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Wallabag\CoreBundle\Entity\Entry;
+use Wallabag\CoreBundle\Event\Model\EntryEvent;
 use Wallabag\CoreBundle\Tools\Utils;
 
 /**
@@ -16,20 +18,29 @@ class ContentProxy
     protected $graby;
     protected $tagger;
     protected $logger;
+    /** @var EventDispatcher */
+    protected $dispatcher;
 
-    public function __construct(Graby $graby, RuleBasedTagger $tagger, Logger $logger)
-    {
+    const EVENT_UPDATE = 'wallabag_content_proxy_update';
+
+    public function __construct(
+        Graby $graby,
+        RuleBasedTagger $tagger,
+        Logger $logger,
+        EventDispatcher $dispatcher = null
+    ) {
         $this->graby = $graby;
         $this->tagger = $tagger;
         $this->logger = $logger;
+        $this->dispatcher = $dispatcher;
     }
 
     /**
      * Fetch content using graby and hydrate given entry with results information.
      * In case we couldn't find content, we'll try to use Open Graph data.
      *
-     * @param Entry  $entry Entry to update
-     * @param string $url   Url to grab content for
+     * @param Entry $entry Entry to update
+     * @param string $url Url to grab content for
      *
      * @return Entry
      */
@@ -72,6 +83,12 @@ class ContentProxy
                 'error_msg' => $e->getMessage(),
             ));
         }
+
+        if ($this->dispatcher === null) {
+            return $entry;
+        }
+
+        $this->dispatcher->dispatch(self::EVENT_UPDATE, new EntryEvent($entry));
 
         return $entry;
     }

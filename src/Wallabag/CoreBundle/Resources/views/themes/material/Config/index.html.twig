@@ -16,6 +16,7 @@
                         <li class="tab col s3"><a href="#set3">{% trans %}User information{% endtrans %}</a></li>
                         <li class="tab col s3"><a href="#set4">{% trans %}Password{% endtrans %}</a></li>
                         <li class="tab col s3"><a href="#set5">{% trans %}Tagging rules{% endtrans %}</a></li>
+                        <li class="tab col s3"><a href="#set7">{% trans %}Web Hook{% endtrans %}</a></li>
                         {% if is_granted('ROLE_SUPER_ADMIN') %}
                         <li class="tab col s3"><a href="#set6">{% trans %}Add a user{% endtrans %}</a></li>
                         {% endif %}
@@ -335,6 +336,104 @@
                                 </p>
                             </div>
                         </div>
+                    </div>
+
+                    <div id="set7" class="col s12">
+                        <div class="row">
+                            <div class="input-field col s12">
+                                {% trans %}Webhooks allow wallabag to notify or listen notifications from other webapps, such as IFTTT. You need to generate a token first.{% endtrans %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="input-field col s12">
+                                <label>{% trans %}Webhook token{% endtrans %}</label>
+                                <div>
+                                    {% if webhook.token %}
+                                        {{ webhook.token }}
+                                    {% else %}
+                                        <em>{% trans %}No token{% endtrans %}</em>
+                                    {% endif %}
+                                    – <a href="{{ path('generate_webhook_token') }}">{% if webhook.token %}{% trans %}Reset your token{% endtrans %}{% else %}{% trans %}Create your token{% endtrans %}{% endif %}</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% if webhook.token %}
+                            <div class="row">
+                                <div class="input-field col s12">
+                                    <label>{% trans %}Incoming webhook{% endtrans %}</label>
+                                    <ul>
+                                        <li>
+                                            {{ absolute_url(path('webhook_post', {'username': webhook.username, 'token': webhook.token})) }}
+                                            -
+                                            <a href="{{ path('nelmio_api_doc_index') }}#post--webhook-{username}-{token}" title="{% trans %}See doc{% endtrans %}">{% trans %}See doc{% endtrans %}</a>
+                                        </li>
+                                    </ul>
+
+                                </div>
+                            </div>
+                        {% endif %}
+                        <div class="row">
+                            <div class="input-field col s12">
+                                <label>{% trans %}Outgoing webhooks{% endtrans %}</label>
+
+                                {{ form_start(form.webhook) }}
+                                {{ form_errors(form.webhook) }}
+                                <div class="row">
+                                    <div class="input-field col s12">
+                                        {{ form_label(form.webhook.event) }}
+                                        {{ form_errors(form.webhook.event) }}
+                                        {{ form_widget(form.webhook.event) }}
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="input-field col s12">
+                                        {{ form_label(form.webhook.type) }}
+                                        {{ form_errors(form.webhook.type) }}
+                                        {{ form_widget(form.webhook.type) }}
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="input-field col s12">
+                                        {{ form_label(form.webhook.url) }}
+                                        {{ form_errors(form.webhook.url) }}
+                                        {{ form_widget(form.webhook.url) }}
+                                    </div>
+                                </div>
+
+                                <div class="hidden">{{ form_rest(form.webhook) }}</div>
+                                <button class="btn waves-effect waves-light" type="submit" name="action">
+                                    {% trans %}Add webhook{% endtrans %}
+                                </button>
+                                </form>
+                            </div>
+                        </div>
+                        <table>
+                            <thead>
+                            <tr>
+                                <th>{% trans %}Event{% endtrans %}</th>
+                                <th>{% trans %}Type{% endtrans %}</th>
+                                <th>{% trans %}URL{% endtrans %}</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for webhook in app.user.config.webhooks %}
+                                <tr>
+                                    <td>{{ webhook.event }}</td>
+                                    <td>{{ webhook.type }}</td>
+                                    <td>{{ webhook.url }}</td>
+                                    <td>
+                                        <a href="{{ path('delete_webhook', {id: webhook.id}) }}" title="{% trans %}Delete{% endtrans %}">
+                                            <i class="tool grey-text delete mdi-action-delete"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
 
                     {% if is_granted('ROLE_SUPER_ADMIN') %}

@@ -33,6 +33,13 @@ services:
         arguments:
             - @doctrine
 
+    wallabag_core.param_converter.username_webhooktoken_converter:
+        class: Wallabag\CoreBundle\ParamConverter\UsernameWebhookTokenConverter
+        tags:
+            - { name: request.param_converter, converter: username_webhooktoken_converter }
+        arguments:
+            - @doctrine
+
     wallabag_core.table_prefix_subscriber:
         class: Wallabag\CoreBundle\Subscriber\TablePrefixSubscriber
         arguments:
@@ -55,6 +62,7 @@ services:
             - @wallabag_core.graby
             - @wallabag_core.rule_based_tagger
             - @logger
+            - @event_dispatcher
 
     wallabag_core.rule_based_tagger:
         class: Wallabag\CoreBundle\Helper\RuleBasedTagger

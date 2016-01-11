@@ -25,6 +25,24 @@ class UserRepository extends EntityRepository
     }
 
     /**
+     * Find a user by its username and wemhook roken.
+     *
+     * @param string $username
+     * @param string $webhookToken
+     *
+     * @return User|null
+     */
+    public function findOneByUsernameAndWebhooktoken($username, $webhookToken)
+    {
+        return $this->createQueryBuilder('u')
+            ->leftJoin('u.config', 'c')
+            ->where('c.webhookToken = :webhook_token')->setParameter('webhook_token', $webhookToken)
+            ->andWhere('u.username = :username')->setParameter('username', $username)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
      * Find a user by its username.
      *
      * @param string $username

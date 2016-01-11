@@ -6,8 +6,11 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\VarDumper\VarDumper;
 use Wallabag\CoreBundle\Entity\Config;
 use Wallabag\CoreBundle\Entity\TaggingRule;
+use Wallabag\CoreBundle\Entity\Webhook;
+use Wallabag\CoreBundle\Form\Type\WebhookType;
 use Wallabag\UserBundle\Entity\User;
 use Wallabag\CoreBundle\Form\Type\ChangePasswordType;
 use Wallabag\CoreBundle\Form\Type\UserInformationType;
@@ -100,6 +103,24 @@ class ConfigController extends Controller
             return $this->redirect($this->generateUrl('config'));
         }
 
+        // handle webhook information
+        $webhook = new Webhook();
+        $webhookForm = $this->createForm(new WebhookType(), $webhook, array('action' => $this->generateUrl('config').'#set7'));
+        $webhookForm->handleRequest($request);
+
+        if ($webhookForm->isValid()) {
+            $webhook->setConfig($config);
+            $em->persist($webhook);
+            $em->flush();
+
+            $this->get('session')->getFlashBag()->add(
+                'notice',
+                'Webhook information updated'
+            );
+
+            return $this->redirect($this->generateUrl('config'));
+        }
+
         // handle tagging rule
         $taggingRule = new TaggingRule();
         $newTaggingRule = $this->createForm(new TaggingRuleType(), $taggingRule, array('action' => $this->generateUrl('config').'#set5'));
@@ -157,11 +178,16 @@ class ConfigController extends Controller
                 'user' => $userForm->createView(),
                 'new_user' => $newUserForm->createView(),
                 'new_tagging_rule' => $newTaggingRule->createView(),
+                'webhook' => $webhookForm->createView()
             ),
             'rss' => array(
                 'username' => $user->getUsername(),
                 'token' => $config->getRssToken(),
             ),
+            'webhook' => array(
+                'username' => $user->getUsername(),
+                'token' => $config->getWebhookToken()
+            )
         ));
     }
 
@@ -183,6 +209,29 @@ class ConfigController extends Controller
 
         if ($request->isXmlHttpRequest()) {
             return new JsonResponse(array('token' => $config->getRssToken()));
+        }
+
+        return $request->headers->get('referer') ? $this->redirect($request->headers->get('referer')) : $this->redirectToRoute('config');
+    }
+
+    /**
+     * @param Request $request
+     *
+     * @Route("/generate-webhook-token", name="generate_webhook_token")
+     *
+     * @return JsonResponse
+     */
+    public function generateWebhookTokenAction(Request $request)
+    {
+        $config = $this->getConfig();
+        $config->setWebhookToken(Utils::generateToken());
+
+        $em = $this->getDoctrine()->getManager();
+        $em->persist($config);
+        $em->flush();
+
+        if ($request->isXmlHttpRequest()) {
+            return new JsonResponse(array('token' => $config->getWebhookToken()));
         }
 
         return $request->headers->get('referer') ? $this->redirect($request->headers->get('referer')) : $this->redirectToRoute('config');
@@ -216,10 +265,37 @@ class ConfigController extends Controller
     }
 
     /**
+     * Deletes a Webhook and redirect to the config homepage.
+     *
+     * @param Webhook $rule
+     *
+     * @Route("/webhook/delete/{id}", requirements={"id" = "\d+"}, name="delete_webhook")
+     *
+     * @return \Symfony\Component\HttpFoundation\RedirectResponse
+     */
+    public function deleteWebhook(Webhook $webhook)
+    {
+        if ($this->getUser()->getId() !== $webhook->getConfig()->getUser()->getId()) {
+            throw $this->createAccessDeniedException('You can not access this webhook.');
+        }
+
+        $em = $this->getDoctrine()->getManager();
+        $em->remove($webhook);
+        $em->flush();
+
+        $this->get('session')->getFlashBag()->add(
+            'notice',
+            'Webhook deleted'
+        );
+
+        return $this->redirect($this->generateUrl('config'));
+    }
+
+    /**
      * Retrieve config for the current user.
      * If no config were found, create a new one.
      *
-     * @return Wallabag\CoreBundle\Entity\Config
+     * @return \Wallabag\CoreBundle\Entity\Config
      */
     private function getConfig()
     {
